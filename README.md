@@ -1,1 +1,3 @@
 # PawFeeder
+
+The automatic dog food dispenser helps maintain a dog’s nutrition by ensuring that the meal is prepared even if the owner is away, the dog eats during the set time, and the amount and portion meet the dog's size and age. By setting the time of dispensing, the owner’s only real problem is their negligence: forgetting to restock the container, inputting the wrong time, or changing the amount and portion of the food. This case study shows how the automatic dog food dispenser operates when implemented with certain measurements.
