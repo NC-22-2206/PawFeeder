@@ -7,16 +7,17 @@ import os
 PIN_FILE = "pin_code.pkl"
 
 # Styles
-APP_WIDTH, APP_HEIGHT = 1000, 600
+APP_WIDTH, APP_HEIGHT = 400, 300
 BACKGROUND_COLOR = "#134B70"
 BUTTON_COLOR = "#508C9B"
 WHITE = "#ffffff"
 TEXT_COLOR = "#ffffff"
 BUTTON_FONT = ("Arial", 12, "bold")
-HEADER_FONT = ("Arial", 20, "bold")
+HEADER_FONT = ("Arial", 16, "bold")
 SMALL_FONT = ("Arial", 12)
 
-# Load and Save PIN Functions
+# --- Functions to Load and Save PIN ---
+
 def load_pin():
     if os.path.exists(PIN_FILE):
         with open(PIN_FILE, "rb") as file:
@@ -27,39 +28,51 @@ def save_pin(pin):
     with open(PIN_FILE, "wb") as file:
         pickle.dump(pin, file)
 
-# Base App
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        
-        # Window Settings
-        self.geometry(f"{APP_WIDTH}x{APP_HEIGHT}")
-        self.title("PawFeeder: Automatic Dog Food Dispenser")
-        self.configure(bg=BACKGROUND_COLOR)
-        self.resizable(False, False)
+# --- Access PIN Window Logic ---
+
+def show_pin_verification():
+    """Shows the PIN entry window and returns True if successful, False otherwise."""
+    root = tk.Tk()
+    app = App(root)
+    root.mainloop()
+    return app.login_success
+
+# --- App class ---
+
+class App:
+    def __init__(self, master):
+        self.master = master
+        self.master.geometry(f"{APP_WIDTH}x{APP_HEIGHT}")
+        self.master.title("PawFeeder: Access PIN")
+        self.master.configure(bg=BACKGROUND_COLOR)
+        self.master.resizable(False, False)
 
         # Center the window
-        self.update_idletasks()
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-        x = (screen_width - APP_WIDTH) // 2
-        y = (screen_height - APP_HEIGHT) // 2
-        self.geometry(f"{APP_WIDTH}x{APP_HEIGHT}+{x}+{y}")
+        self.center_window()
 
         # Set Icon
         try:
             img = tk.PhotoImage(file='icons/pawfeeder.png')
-            self.iconphoto(False, img)
+            self.master.iconphoto(False, img)
         except Exception as e:
             print("Icon not found:", e)
 
         self.current_frame = None
+        self.login_success = False
         self.show_login_or_set_pin()
+
+    def center_window(self):
+        self.master.update_idletasks()
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+        x = (screen_width - APP_WIDTH) // 2
+        y = (screen_height - APP_HEIGHT) // 2
+        self.master.geometry(f"{APP_WIDTH}x{APP_HEIGHT}+{x}+{y}")
 
     def show_frame(self, frame_class):
         if self.current_frame:
             self.current_frame.destroy()
-        self.current_frame = frame_class(self)
+        self.current_frame = frame_class(self.master, self)
         self.current_frame.pack(expand=True, fill="both")
 
     def show_login_or_set_pin(self):
@@ -69,15 +82,16 @@ class App(tk.Tk):
         else:
             self.show_frame(LoginScreen)
 
-    def show_main_app(self):
-        self.destroy()
-        import testsystem # <-- This should be your main app file or function
-        testsystem.start_main_app()  # <- assume your main app launches from here
+    def login_successful(self):
+        self.login_success = True
+        self.master.destroy()
 
-# Base Frame
+# --- Base Frame ---
+
 class BaseFrame(tk.Frame):
-    def __init__(self, master):
+    def __init__(self, master, app):
         super().__init__(master, bg=BACKGROUND_COLOR)
+        self.app = app
 
     def create_label(self, text, font=SMALL_FONT, pady=5):
         return tk.Label(self, text=text, bg=BACKGROUND_COLOR, fg=TEXT_COLOR, font=font, pady=pady)
@@ -91,16 +105,17 @@ class BaseFrame(tk.Frame):
                          activebackground="#417882", activeforeground=WHITE,
                          bd=0, relief="flat", padx=10, pady=5, cursor="hand2")
 
-# Set PIN Screen
-class SetPinScreen(BaseFrame):
-    def __init__(self, master):
-        super().__init__(master)
+# --- Set PIN Screen ---
 
-        self.create_label("Set a New 4-digit PIN", font=HEADER_FONT).pack(pady=30)
+class SetPinScreen(BaseFrame):
+    def __init__(self, master, app):
+        super().__init__(master, app)
+
+        self.create_label("Set a New 4-digit PIN", font=HEADER_FONT, pady=20).pack()
         self.pin_entry = self.create_entry(show="*")
         self.pin_entry.pack(pady=10)
 
-        self.create_label("Confirm PIN", font=HEADER_FONT).pack(pady=10)
+        self.create_label("Confirm PIN", font=HEADER_FONT, pady=10).pack()
         self.confirm_entry = self.create_entry(show="*")
         self.confirm_entry.pack(pady=10)
 
@@ -120,14 +135,15 @@ class SetPinScreen(BaseFrame):
 
         save_pin(new_pin)
         messagebox.showinfo("Success", "PIN set successfully!")
-        self.master.show_frame(LoginScreen)
+        self.app.show_login_or_set_pin()
 
-# Login Screen
+# --- Login Screen ---
+
 class LoginScreen(BaseFrame):
-    def __init__(self, master):
-        super().__init__(master)
+    def __init__(self, master, app):
+        super().__init__(master, app)
 
-        self.create_label("Enter PIN to Continue", font=HEADER_FONT).pack(pady=30)
+        self.create_label("Enter PIN to Continue", font=HEADER_FONT, pady=30).pack()
         self.pin_entry = self.create_entry(show="*")
         self.pin_entry.pack(pady=10)
 
@@ -139,7 +155,7 @@ class LoginScreen(BaseFrame):
         stored_pin = load_pin()
 
         if stored_pin == entered_pin:
-            self.master.show_main_app()
+            self.app.login_successful()
         else:
             messagebox.showerror("Incorrect", "Wrong PIN. Try again.")
 
@@ -148,9 +164,12 @@ class LoginScreen(BaseFrame):
         if answer:
             save_pin(None)
             messagebox.showinfo("Reset", "PIN has been reset. Set a new PIN.")
-            self.master.show_frame(SetPinScreen)
+            self.app.show_login_or_set_pin()
 
-# Entry Point
+# --- Main Testing Entry Point (Only runs when this file is run directly) ---
+
 if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+    if show_pin_verification():
+        print("PIN verified successfully!")
+    else:
+        print("PIN verification failed or cancelled.")
