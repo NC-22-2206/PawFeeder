@@ -199,7 +199,7 @@ def run_terms_acceptance():
 
 def run_pin_verification():
     """Runs the access_pin.py script."""
-    access_pin_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "access_pin.py")
+    access_pin_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "accesspin.py")
     result = subprocess.run([sys.executable, access_pin_path])
     return result.returncode == 0
 
