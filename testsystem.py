@@ -6,7 +6,7 @@ import serial
 import subprocess
 import sys
 import os
-import pickle  # Import early to avoid issues
+import pickle
 from datetime import datetime
 
 
@@ -15,7 +15,7 @@ try:
     arduino = serial.Serial('COM5', 9600, timeout=1)
     time.sleep(2)  # Allow Arduino to reset
 except serial.SerialException:
-    print("[ERROR] Cannot connect to Arduino on COM3")
+    print("[ERROR] Cannot connect to Arduino on COM5")
     exit()
 
 
@@ -41,7 +41,6 @@ def convert_to_24h_format(t):
     except ValueError:
         print(f"[ERROR] Invalid time format: {t}")
         return None
-
 
 # --- Confirm and Send Scheduled Times to Arduino ---
 def confirm_schedule(event):
@@ -91,7 +90,6 @@ def confirm_schedule(event):
     else:
         print("[WARN] No valid times to send.")
         messagebox.showwarning("Invalid Times", "No valid feeding times found.")
-
 
 
 
@@ -212,6 +210,12 @@ if __name__ == "__main__":
 
     if not run_pin_verification():
         sys.exit()  # Exit if PIN verification fails
+
+
+
+
+
+
 
     # --- Main App Starts Here ---
 
@@ -388,6 +392,8 @@ if __name__ == "__main__":
     ]
     for row in rows:
         table.insert("", "end", values=row)
+    
+    table.bind("<<TreeviewSelect>>", confirm_schedule)
 
     # Reset Schedule Button
     page1_reset_button = tk.Button(
