@@ -481,8 +481,7 @@ page1_reset_button = tk.Button(
     pady=5,
     relief="flat",
     activebackground="#C9302C",
-    command=reset_schedule
-   
+    command=reset_schedule 
 )
 page1_reset_button.place(relx=0.5, y=540, anchor="center")
 
@@ -557,7 +556,6 @@ update_time()
 
 
 root.mainloop()
-
 
 
 

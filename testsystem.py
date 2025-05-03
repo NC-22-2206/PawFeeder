@@ -9,6 +9,178 @@ import os
 import pickle  # Import early to avoid issues
 from datetime import datetime
 
+
+# --- Serial Setup ---
+try:
+    arduino = serial.Serial('COM5', 9600, timeout=1)
+    time.sleep(2)  # Allow Arduino to reset
+except serial.SerialException:
+    print("[ERROR] Cannot connect to Arduino on COM3")
+    exit()
+
+
+# --- Ask Arduino for current RTC time ---
+arduino.reset_input_buffer()
+arduino.write(b'GETTIME\n')
+time.sleep(0.5)
+
+
+while arduino.in_waiting:
+    line = arduino.readline().decode(errors='ignore').strip()
+    print("[ARDUINO RTC]:", line)
+
+
+
+
+# --- Convert to 24h Format for RTC Schedule ---
+def convert_to_24h_format(t):
+    t = t.strip().upper().replace(" ", "")
+    try:
+        dt = datetime.strptime(t, "%I:%M%p")
+        return dt.strftime("%H:%M:%S")
+    except ValueError:
+        print(f"[ERROR] Invalid time format: {t}")
+        return None
+
+
+# --- Confirm and Send Scheduled Times to Arduino ---
+def confirm_schedule(event):
+    selected = table.focus()
+    if not selected:
+        return
+
+
+    values = table.item(selected, 'values')
+    dog_type, age_size, meal_frequency, portion_per_meal, times_str = values
+
+
+    response = messagebox.askyesno(
+        "Confirm Schedule",
+        f"Dog Type: {dog_type}\nAge/Size: {age_size}\nMeal Frequency: {meal_frequency}\n"
+        f"Portion per Meal: {portion_per_meal}\nTime of Feeding: {times_str}\n\n"
+        "Do you want to activate this schedule?"
+    )
+
+
+    if not response:
+        return
+
+
+    times_list = [t.strip() for t in times_str.split(',')]
+    formatted_times = []
+
+
+    for t in times_list:
+        converted = convert_to_24h_format(t)
+        if converted:
+            formatted_times.append(converted)
+        else:
+            print(f"[WARN] Skipping invalid time: {t}")
+
+
+    if formatted_times:
+        command = "SCHEDULE:" + ",".join(formatted_times) + "\n"
+        try:
+            arduino.write(command.encode())
+            print("[INFO] Sent to Arduino:", command.strip())
+            schedule_label.config(text=", ".join(times_list))
+            messagebox.showinfo("Schedule Activated", "Schedule has been sent to Arduino.")
+        except Exception as e:
+            print("[ERROR] Failed to send schedule:", e)
+            messagebox.showerror("Error", "Failed to send schedule to Arduino.")
+    else:
+        print("[WARN] No valid times to send.")
+        messagebox.showwarning("Invalid Times", "No valid feeding times found.")
+
+
+
+
+# --- Read Serial Output from Arduino ---
+def read_from_arduino():
+    while True:
+        if arduino.in_waiting:
+            try:
+                line = arduino.readline().decode(errors='ignore').strip()
+                if line:
+                    print("[ARDUINO]:", line)
+            except Exception as e:
+                print("[ERROR Reading Arduino]:", e)
+
+
+threading.Thread(target=read_from_arduino, daemon=True).start()
+
+
+
+
+def reset_schedule():
+    confirm = messagebox.askyesno("Reset Schedule", "Are you sure you want to reset the feeding schedule?")
+    if not confirm:
+        return
+
+
+    try:
+        arduino.write(b'RESETSCH\n')
+        print("[INFO] Sent 'RESETSCH' to Arduino")
+        schedule_label.config(text="")
+        messagebox.showinfo("Schedule Reset", "The feeding schedule has been reset.")
+    except Exception as e:
+        print("[ERROR] Failed to send reset command:", e)
+        messagebox.showerror("Error", "Failed to reset schedule. Make sure Arduino is connected.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# --- Manual Feed Button Logic ---
+def activate_manual_feed():
+    confirm = messagebox.askyesno("Confirm Dispensing", "Are you sure you want to dispense dog food?")
+    if not confirm:
+        return
+
+
+    def run():
+        # Disable the button temporarily
+        page3_button.config(state="disabled", disabledforeground="white")
+
+
+        # Send the manual feed command
+        arduino.write(b'D')
+        print("[MANUAL] Sent 'D' to Arduino")
+
+
+        time.sleep(5)  # Wait for servo action
+
+
+        messagebox.showinfo("Manual Feed", "Your pet’s food has been dispensed.")
+
+
+        # Re-enable the button
+        root.after(300, lambda: page3_button.config(text="Dispense", state="normal"))
+
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+
+
+
+
+
+
+
+
+
 # --- Setup Functions ---
 
 def check_terms_accepted():
@@ -219,8 +391,15 @@ if __name__ == "__main__":
 
     # Reset Schedule Button
     page1_reset_button = tk.Button(
-        page1_frame, text="Reset Schedule", font=("Arial", 10, "bold"),
-        bg="#D9534F", fg="white", relief="flat", activebackground="#C9302C", padx=15, pady=5
+        page1_frame,
+        text="Reset Schedule",
+        font=("Arial", 10, "bold"),
+        bg="#D9534F",
+        padx=15,
+        pady=5,
+        relief="flat",
+        activebackground="#C9302C",
+        command=reset_schedule 
     )
     page1_reset_button.place(relx=0.5, y=540, anchor="center")
 
@@ -241,9 +420,19 @@ if __name__ == "__main__":
     page3_date_label = tk.Label(page3_frame, font=("Arial", 12), bg="white", fg="black")
     page3_date_label.place(x=30, y=50)
 
+    # Dispense Button
     page3_button = tk.Button(
-        page3_frame, text="Dispense", font=("Arial", 10, "bold"),
-        bg=BUTTON_COLOR, fg="white", relief="flat", padx=15, pady=5
+        page3_frame,
+        text="Dispense",
+        font=("Arial", 10, "bold"),
+        bg="#508C9B",
+        fg="white",
+        disabledforeground="white",
+        padx=15,
+        pady=5,
+        relief="flat",
+        activebackground="white",
+        command=activate_manual_feed
     )
     page3_button.place(relx=0.5, y=450, anchor="center")
 
