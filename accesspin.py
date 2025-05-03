@@ -12,9 +12,9 @@ import time
 load_dotenv()
 
 # Constants
-PIN_FILE = "pin_code.pkl"
-OTP_FILE = "otp.pkl"
-EMAIL_FILE = "email.pkl"
+PIN_FILE = "pkl/pin_code.pkl"
+OTP_FILE = "pkl/otp.pkl"
+EMAIL_FILE = "pkl/email.pkl"
 OTP_EXPIRY = 120  # 2 minutes
 
 EMAIL_ADDRESS = os.environ.get('EMAIL_ADDRESS')

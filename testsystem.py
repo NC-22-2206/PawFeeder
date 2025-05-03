@@ -183,7 +183,7 @@ def activate_manual_feed():
 
 def check_terms_accepted():
     """Checks if the terms and conditions have been accepted."""
-    terms_file = "terms_accepted.pkl"
+    terms_file = "pkl/terms_accepted.pkl"
     if os.path.exists(terms_file):
         with open(terms_file, "rb") as f:
             return pickle.load(f)

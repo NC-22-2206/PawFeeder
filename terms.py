@@ -6,7 +6,7 @@ import os
 from access_pin import App  # Import App from access_pin.py
 
 # Constants
-TERMS_FILE = "terms_accepted.pkl"
+TERMS_FILE = "pkl/terms_accepted.pkl"
 
 # Styles
 APP_WIDTH, APP_HEIGHT = 1000, 600

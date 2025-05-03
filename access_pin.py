@@ -4,7 +4,7 @@ import pickle
 import os
 
 # Constants
-PIN_FILE = "pin_code.pkl"
+PIN_FILE = "pkl/pin_code.pkl"
 
 # Styles
 APP_WIDTH, APP_HEIGHT = 400, 300
