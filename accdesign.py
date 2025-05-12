@@ -11,6 +11,12 @@ import time
 
 load_dotenv()
 
+try:
+    from ctypes import windll
+    windll.shcore.SetProcessDpiAwareness(1)
+except ImportError:
+    pass
+
 # Constants
 PIN_FILE = "pkl/pin_code.pkl"
 OTP_FILE = "pkl/otp.pkl"
@@ -24,14 +30,16 @@ if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
     print("Error: EMAIL_ADDRESS and EMAIL_PASSWORD environment variables not set.")
 
 # UI Constants
-APP_WIDTH, APP_HEIGHT = 500, 500
-BACKGROUND_COLOR = "#134B70"
-BUTTON_COLOR = "#508C9B"
+APP_WIDTH, APP_HEIGHT = 500, 600
+BACKGROUND_COLOR = "#F0F4F8"
+BUTTON_COLOR = "#134B70"
 WHITE = "#ffffff"
-TEXT_COLOR = "#ffffff"
-BUTTON_FONT = ("Arial", 12, "bold")
-HEADER_FONT = ("Arial", 16, "bold")
-SMALL_FONT = ("Arial", 12)
+TEXT_COLOR = "#2A3B5A"
+HEADER_FONT = ("Segoe UI", 20, "bold")
+LABEL_FONT = ("Segoe UI", 12)
+ENTRY_FONT = ("Segoe UI", 12)
+BUTTON_FONT = ("Segoe UI", 10, "bold")
+SMALL_FONT = ("Segoe UI", 12)
 
 
 # --- Data Handling ---
@@ -138,32 +146,67 @@ class BaseFrame(tk.Frame):
     def __init__(self, master, app):
         super().__init__(master, bg=BACKGROUND_COLOR)
         self.app = app
+        self.setup_ui()
 
-    def create_label(self, text, font=SMALL_FONT, pady=5):
-        return tk.Label(self, text=text, bg=BACKGROUND_COLOR, fg=TEXT_COLOR, font=font, pady=pady)
+    def setup_ui(self):
+        # A centered container frame inside BaseFrame
+        self.container = tk.Frame(self, bg=BACKGROUND_COLOR)
+        self.container.pack(expand=True, fill="both", padx=40)
+
+    def create_label(self, text, font=None, pady=10):
+        return tk.Label(
+            self.container,
+            text=text,
+            bg=BACKGROUND_COLOR,
+            fg=TEXT_COLOR,
+            font=font or LABEL_FONT,
+            pady=pady
+        )
 
     def create_entry(self, show=None):
-        return tk.Entry(self, show=show, font=SMALL_FONT, bd=2, relief="solid")
+        return tk.Entry(
+            self.container,
+            show=show,
+            font=ENTRY_FONT,
+            bd=1,
+            relief="flat",
+            highlightthickness=1,
+            highlightbackground="#ccc",
+            highlightcolor="#3AA6B9",
+            justify='left'
+        )
 
     def create_button(self, text, command):
-        return tk.Button(self, text=text, command=command,
-                         bg=BUTTON_COLOR, fg=WHITE, font=BUTTON_FONT,
-                         activebackground="#417882", activeforeground=WHITE,
-                         bd=0, relief="flat", padx=10, pady=5, cursor="hand2")
+        return tk.Button(
+            self.container,
+            text=text,
+            command=command,
+            bg=BUTTON_COLOR,
+            fg=WHITE,
+            font=BUTTON_FONT,
+            activebackground="#2E8C9B",
+            activeforeground=WHITE,
+            bd=0,
+            relief="flat",
+            padx=10,
+            pady=5,
+            cursor="hand2",
+            width=10
+        )
 
 
 # --- Register Email ---
 class RegisterEmailScreen(BaseFrame):
     def __init__(self, master, app):
         super().__init__(master, app)
-        self.create_label("Register Your Email", font=HEADER_FONT, pady=20).pack()
+        self.create_label("Register Your Email", font=HEADER_FONT, pady=40).pack(anchor=tk.W)
         self.email_label = self.create_label("Enter your email address:")
-        self.email_label.pack()
+        self.email_label.pack(pady=5, ipadx=0, ipady=0, anchor=tk.W)
         self.email_entry = self.create_entry()
-        self.email_entry.pack(pady=5)
+        self.email_entry.pack(fill="x", pady=5, anchor=tk.W)
 
         self.register_button = self.create_button("Register", self.register_email)
-        self.register_button.pack(pady=10)
+        self.register_button.pack(pady=10, anchor=tk.CENTER)
 
         self.otp_label = self.create_label("Enter OTP:")
         self.otp_entry = self.create_entry()
@@ -180,9 +223,9 @@ class RegisterEmailScreen(BaseFrame):
         save_data({"otp": otp, "expiry": expiry_time, "email": email}, OTP_FILE)
         send_otp_email(email, otp)
 
-        self.otp_label.pack()
-        self.otp_entry.pack(pady=5)
-        self.verify_otp_button.pack(pady=10)
+        self.otp_label.pack(pady=5, ipadx=0, ipady=0, anchor=tk.W)
+        self.otp_entry.pack(fill="x", pady=5, anchor=tk.W)
+        self.verify_otp_button.pack(pady=10, anchor=tk.CENTER)
         self.register_button.config(state="disabled")
 
     def verify_email(self):
@@ -235,23 +278,25 @@ class SetPinScreen(BaseFrame):
 
 # --- Login ---
 class LoginScreen(BaseFrame):
-    def __init__(self, master, app):
-        super().__init__(master, app)
-        self.create_label("Enter PIN to Continue", font=HEADER_FONT, pady=20).pack()
+    def setup_ui(self):
+        super().setup_ui()
+        self.title = self.create_label("Enter Your PIN", font=HEADER_FONT)
+        self.title.pack(pady=(0, 30))
+
         self.pin_entry = self.create_entry(show="*")
-        self.pin_entry.pack(pady=10)
+        self.pin_entry.pack(pady=10, ipadx=10, ipady=6)
 
-        self.create_button("Login", self.check_pin).pack(pady=10)
-        self.create_button("Forgot PIN? Verify via Email", self.show_forgot_pin).pack(pady=10)
+        self.login_button = self.create_button("Login", self.check_pin)
+        self.login_button.pack(pady=20)
 
+        self.forgot_button = self.create_button("Forgot PIN?", self.show_forgot_pin)
+        self.forgot_button.pack()
+    
     def check_pin(self):
         if load_data(PIN_FILE) == self.pin_entry.get():
             self.app.login_successful()
         else:
             messagebox.showerror("Incorrect", "Wrong PIN.")
-
-    def show_forgot_pin(self):
-        self.app.show_frame(ForgotPasswordScreen)
 
 
 # --- Forgot PIN ---
