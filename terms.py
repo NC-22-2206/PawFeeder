@@ -3,17 +3,17 @@ import tkinter as tk
 from tkinter import messagebox
 import pickle
 import os
-from access_pin import App  # Import App from access_pin.py
+from scratch.access_pin import App  # Import App from access_pin.py
 
 # Constants
 TERMS_FILE = "pkl/terms_accepted.pkl"
 
 # Styles
 APP_WIDTH, APP_HEIGHT = 1000, 600
-BACKGROUND_COLOR = "#134B70"
+BACKGROUND_COLOR = "#F0F4F8"
 BUTTON_COLOR = "#508C9B"
 WHITE = "#ffffff"
-TEXT_COLOR = "#ffffff"
+TEXT_COLOR = "#2A3B5A"
 BUTTON_FONT = ("Arial", 12, "bold")
 HEADER_FONT = ("Arial", 20, "bold")
 SMALL_FONT = ("Arial", 12)

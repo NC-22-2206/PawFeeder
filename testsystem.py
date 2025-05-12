@@ -12,7 +12,7 @@ from datetime import datetime
 
 # --- Serial Setup ---
 try:
-    arduino = serial.Serial('COM5', 9600, timeout=1)
+    arduino = serial.Serial('COM3', 9600, timeout=1)
     time.sleep(2)  # Allow Arduino to reset
 except serial.SerialException:
     print("[ERROR] Cannot connect to Arduino on COM5")
@@ -237,7 +237,7 @@ if __name__ == "__main__":
     # --- Styling ---
     BACKGROUND_COLOR = "#134B70"
     BUTTON_COLOR = "#508C9B"
-    WHITE = "#ffffff"
+    WHITE = "#F0F4F8"
     BUTTON_FONT = ("Arial", 12, "bold")
     HEADER_FONT = ("Arial", 20, "bold")
     SMALL_FONT = ("Arial", 12)
@@ -339,10 +339,10 @@ if __name__ == "__main__":
 
     # --- Page 1 (Automatic Feed) ---
 
-    page1_frame = tk.Frame(main_frame, bg="white")
+    page1_frame = tk.Frame(main_frame, bg="#F0F4F8")
     page1_frame.pack_propagate(False)
 
-    page1_label = tk.Label(page1_frame, text="Automatic Feed Setup", font=HEADER_FONT, bg="white")
+    page1_label = tk.Label(page1_frame, text="Automatic Feed Setup", font=HEADER_FONT, fg="#2A3B5A", bg="#F0F4F8")
     page1_label.place(x=30, y=90)
 
     page1_label1 = tk.Label(page1_frame, text="Choose schedule", font=SMALL_FONT, bg="white")

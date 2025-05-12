@@ -111,15 +111,15 @@ class SetPinScreen(BaseFrame):
     def __init__(self, master, app):
         super().__init__(master, app)
 
-        self.create_label("Set a New 4-digit PIN", font=HEADER_FONT, pady=20).pack()
+        self.create_label("Set a New 4-digit PIN", font=HEADER_FONT, pady=20).pack(pady=5, ipadx=0, ipady=0, anchor=tk.W)
         self.pin_entry = self.create_entry(show="*")
-        self.pin_entry.pack(pady=10)
+        self.pin_entry.pack(fill="x", pady=5, anchor=tk.W)
 
-        self.create_label("Confirm PIN", font=HEADER_FONT, pady=10).pack()
+        self.create_label("Confirm PIN", font=HEADER_FONT, pady=10).pack(pady=5, ipadx=0, ipady=0, anchor=tk.W)
         self.confirm_entry = self.create_entry(show="*")
-        self.confirm_entry.pack(pady=10)
+        self.confirm_entry.pack(fill="x", pady=5, anchor=tk.W)
 
-        self.create_button("Save PIN", self.save_new_pin).pack(pady=20)
+        self.create_button("Save PIN", self.save_new_pin).pack(pady=10, anchor=tk.CENTER)
 
     def save_new_pin(self):
         new_pin = self.pin_entry.get()
