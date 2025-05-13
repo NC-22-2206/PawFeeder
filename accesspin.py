@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox, PhotoImage
 import pickle
 import os
 import random
@@ -8,7 +8,6 @@ import subprocess
 from email.message import EmailMessage
 from dotenv import load_dotenv
 import time
-from tkinter import PhotoImage
 
 load_dotenv()
 
