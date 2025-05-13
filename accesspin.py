@@ -138,8 +138,9 @@ class App:
 
     def login_successful(self):
         self.login_success = True
-        self.master.destroy()
-        subprocess.Popen(["python", "testsystem.py"])
+        self.master.destroy()  
+        if self.login_success: 
+            subprocess.Popen(["python", "testsystem.py"])
 
 
 # --- Base Frame ---
