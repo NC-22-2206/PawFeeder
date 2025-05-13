@@ -139,8 +139,13 @@ class App:
     def login_successful(self):
         self.login_success = True
         self.master.destroy()  
-        if self.login_success: 
-            subprocess.Popen(["python", "testsystem.py"])
+        
+        if self.login_success:
+            try:
+                subprocess.Popen(["python", "testsystem.py"])
+            except Exception as e:
+                print(f"Failed to start testsystem.py: {e}")
+
 
 
 # --- Base Frame ---

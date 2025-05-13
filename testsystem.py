@@ -12,7 +12,7 @@ from datetime import datetime
 
 # --- Serial Setup ---
 try:
-    arduino = serial.Serial('COM4', 9600, timeout=1)
+    arduino = serial.Serial('COM3', 9600, timeout=1)
     time.sleep(2)  # Allow Arduino to reset
 except serial.SerialException:
     print("[ERROR] Cannot connect to Arduino on COM5")
@@ -284,20 +284,20 @@ if __name__ == "__main__":
     main_frame.pack(side=tk.RIGHT, fill="both", expand=True)
 
     # Main Page Frame
-    main_page_frame = tk.Frame(main_frame, bg=BACKGROUND_COLOR)
+    main_page_frame = tk.Frame(main_frame, bg="#F0F4F8")
     main_page_frame.pack(fill="both", expand=True)
 
     # Main Logo
-    main_logo_frame = tk.Frame(main_page_frame, bg=BACKGROUND_COLOR)
+    main_logo_frame = tk.Frame(main_page_frame, bg="#F0F4F8")
     main_logo_frame.place(relx=0.5, rely=0.4, anchor="center")
 
     main_logo_icon = PhotoImage(file="icons/pawfeeder.png").subsample(2)
-    main_logo_label = tk.Label(main_logo_frame, image=main_logo_icon, bg=BACKGROUND_COLOR)
+    main_logo_label = tk.Label(main_logo_frame, image=main_logo_icon, bg="#F0F4F8")
     main_logo_label.pack(pady=20)
 
     # Start Button
     start_button = tk.Button(
-        main_page_frame, text="Start Feeding", font=BUTTON_FONT, bg=BUTTON_COLOR, fg="white",
+        main_page_frame, text="Start Feeding",font=BUTTON_FONT, bg="#134B70", fg="white",
         padx=15, pady=5, relief="flat", activebackground=BUTTON_COLOR, activeforeground="white",
         cursor="hand2", command=start_feeding
     )
@@ -345,19 +345,19 @@ if __name__ == "__main__":
     page1_label = tk.Label(page1_frame, text="Automatic Feed Setup", font=HEADER_FONT, fg="#2A3B5A", bg="#F0F4F8")
     page1_label.place(x=30, y=90)
 
-    page1_label1 = tk.Label(page1_frame, text="Choose schedule", font=SMALL_FONT, bg="white")
+    page1_label1 = tk.Label(page1_frame, text="Choose schedule", font=SMALL_FONT, fg="#2A3B5A", bg="#F0F4F8")
     page1_label1.place(x=30, y=125)
 
-    page1_time_label = tk.Label(page1_frame, font=("Arial", 20, "bold"), bg="white", fg="black")
+    page1_time_label = tk.Label(page1_frame, font=("Arial", 20, "bold"),  fg="#2A3B5A", bg="#F0F4F8")
     page1_time_label.place(x=30, y=20)
 
-    page1_date_label = tk.Label(page1_frame, font=("Arial", 12), bg="white", fg="black")
+    page1_date_label = tk.Label(page1_frame, font=("Arial", 12), fg="#2A3B5A", bg="#F0F4F8")
     page1_date_label.place(x=30, y=50)
 
-    schedule_set = tk.Label(page1_frame, text="Schedule Set:", font=("Arial", 10, "bold", "italic"), fg="green", bg="white")
+    schedule_set = tk.Label(page1_frame, text="Schedule Set:", font=("Arial", 10, "bold", "italic"),  fg="#2A3B5A", bg="#F0F4F8")
     schedule_set.place(x=30, y=460)
 
-    schedule_label = tk.Label(page1_frame, text="", font=("Arial", 10, "bold", "italic"), fg="green", bg="white")
+    schedule_label = tk.Label(page1_frame, text="", font=("Arial", 10, "bold", "italic"),  fg="#2A3B5A", bg="#F0F4F8")
     schedule_label.place(x=125, y=460)
 
     # Table Style
@@ -400,7 +400,8 @@ if __name__ == "__main__":
         page1_frame,
         text="Reset Schedule",
         font=("Arial", 10, "bold"),
-        bg="#D9534F",
+        fg="WHITE",
+        bg="#508C9B",
         padx=15,
         pady=5,
         relief="flat",
@@ -411,19 +412,19 @@ if __name__ == "__main__":
 
     # --- Page 3 (Manual Feed) ---
 
-    page3_frame = tk.Frame(main_frame, bg="white")
+    page3_frame = tk.Frame(main_frame, bg="#F0F4F8")
     page3_frame.pack_propagate(False)
 
-    page3_label = tk.Label(page3_frame, text="Manual Feed Setup", font=HEADER_FONT, bg="white")
+    page3_label = tk.Label(page3_frame, text="Manual Feed Setup", font=HEADER_FONT, bg="#F0F4F8",  fg="#2A3B5A")
     page3_label.place(x=30, y=90)
 
-    page3_label1 = tk.Label(page3_frame, text="Click button to dispense dog foods", font=SMALL_FONT, bg="white")
+    page3_label1 = tk.Label(page3_frame, text="Click button to dispense dog foods", font=SMALL_FONT, fg="#2A3B5A", bg="#F0F4F8")
     page3_label1.place(x=30, y=125)
 
-    page3_time_label = tk.Label(page3_frame, font=("Arial", 20, "bold"), bg="white", fg="black")
+    page3_time_label = tk.Label(page3_frame, font=("Arial", 20, "bold"), fg="#2A3B5A", bg="#F0F4F8")
     page3_time_label.place(x=30, y=20)
 
-    page3_date_label = tk.Label(page3_frame, font=("Arial", 12), bg="white", fg="black")
+    page3_date_label = tk.Label(page3_frame, font=("Arial", 12), bg="#F0F4F8", fg="#2A3B5A")
     page3_date_label.place(x=30, y=50)
 
     # Dispense Button
