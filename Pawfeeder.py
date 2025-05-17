@@ -3,15 +3,19 @@ from tkinter import ttk, messagebox, PhotoImage
 import time
 import threading
 import serial
+import subprocess
+import sys
+import os
+import pickle
 from datetime import datetime
 
 
 # --- Serial Setup ---
 try:
-    arduino = serial.Serial('COM5', 9600, timeout=1)
+    arduino = serial.Serial('COM3', 9600, timeout=1)
     time.sleep(2)  # Allow Arduino to reset
 except serial.SerialException:
-    print("[ERROR] Cannot connect to Arduino on COM3")
+    print("[ERROR] Cannot connect to Arduino on COM5")
     exit()
 
 
@@ -37,7 +41,6 @@ def convert_to_24h_format(t):
     except ValueError:
         print(f"[ERROR] Invalid time format: {t}")
         return None
-
 
 # --- Confirm and Send Scheduled Times to Arduino ---
 def confirm_schedule(event):
@@ -87,7 +90,6 @@ def confirm_schedule(event):
     else:
         print("[WARN] No valid times to send.")
         messagebox.showwarning("Invalid Times", "No valid feeding times found.")
-
 
 
 
@@ -168,33 +170,6 @@ def activate_manual_feed():
     threading.Thread(target=run, daemon=True).start()
 
 
-# Create the root window
-root = tk.Tk()
-root.geometry('1000x600')
-root.title("PawFeeder: Automatic Dog Food Dispenser")
-root.pack_propagate(False)
-root.resizable(True, True)
-
-
-img = PhotoImage(file='icons/pawfeeder.png')
-root.iconphoto(False, img)
-
-
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-width, height = 1000, 600
-root.geometry(f"{width}x{height}+{(screen_width - width) // 2}+{(screen_height - height) // 2}")
-
-
-# Main Style
-BACKGROUND_COLOR = "#134B70"
-BUTTON_COLOR = "#508C9B"
-WHITE = "#ffffff"
-TEXT_COLOR = "#white"
-BUTTON_FONT = ("Arial", 12, "bold")
-HEADER_FONT = ("Arial", 20, "bold")
-SMALL_FONT = ("Arial", 12)
-TABLE_FONT = ("Arial", 10)
 
 
 
@@ -203,360 +178,273 @@ TABLE_FONT = ("Arial", 10)
 
 
 
-# Functions
-def start_feeding():
-    main_page_frame.pack_forget()
-    options_frame.pack(side=tk.LEFT, fill="y", anchor="n")
-    options_frame.pack_propagate(False)
+
+# --- Setup Functions ---
+
+def check_terms_accepted():
+    """Checks if the terms and conditions have been accepted."""
+    terms_file = "pkl/terms_accepted.pkl"
+    if os.path.exists(terms_file):
+        with open(terms_file, "rb") as f:
+            return pickle.load(f)
+    return False
+
+def run_terms_acceptance():
+    """Runs the terms.py script."""
+    terms_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "terms.py")
+    result = subprocess.run([sys.executable, terms_path])
+    return result.returncode == 0
+
+def run_pin_verification():
+    """Runs the access_pin.py script."""
+    access_pin_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "accesspin.py")
+    result = subprocess.run([sys.executable, access_pin_path])
+    return result.returncode == 0
+
+# --- Check Terms and PIN ---
+
+if __name__ == "__main__":
+    if not check_terms_accepted():
+        if not run_terms_acceptance():
+            sys.exit()  # Exit if terms are not accepted
+
+    if not run_pin_verification():
+        sys.exit()  # Exit if PIN verification fails
 
 
-# Switch to page 1 (Automatic Feed)
-def switch_to_page1():
-    page3_frame.pack_forget()
-    page1_frame.pack(fill="both", expand=True)
 
 
-# Switch to page 2 (Manual Feed)
-def switch_to_page2():
-    page1_frame.pack_forget()
-    page3_frame.pack_forget()
-    #page2_frame.pack(fill="both", expand=True)
 
 
-# Switch to page 3 (Customize Feed)
-def switch_to_page3():
-    page1_frame.pack_forget()
-    #page2_frame.pack_forget()
-    page3_frame.pack(fill="both", expand=True)
 
+    # --- Main App Starts Here ---
 
-# Switch to back to main page
-def switch_to_main():
-    page1_frame.pack_forget()
-   # page2_frame.pack_forget()
-    page3_frame.pack_forget()
-    options_frame.pack_forget()
+    root = tk.Tk()
+    root.geometry('1000x600')
+    root.title("PawFeeder: Automatic Dog Food Dispenser")
+    root.resizable(True, True)
+
+    # Set window icon
+    img = PhotoImage(file='icons/pawfeeder.png')
+    root.iconphoto(False, img)
+
+    # Center the window
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    width, height = 1000, 600
+    root.geometry(f"{width}x{height}+{(screen_width - width) // 2}+{(screen_height - height) // 2}")
+
+    # --- Styling ---
+    BACKGROUND_COLOR = "#134B70"
+    BUTTON_COLOR = "#508C9B"
+    WHITE = "#F0F4F8"
+    BUTTON_FONT = ("Arial", 12, "bold")
+    HEADER_FONT = ("Arial", 20, "bold")
+    SMALL_FONT = ("Arial", 12)
+    TABLE_FONT = ("Arial", 10)
+
+    # --- Functions ---
+
+    def start_feeding():
+        main_page_frame.pack_forget()
+        options_frame.pack(side=tk.LEFT, fill="y")
+        options_frame.pack_propagate(False)
+
+    def switch_to_page1():
+        page3_frame.pack_forget()
+        page1_frame.pack(fill="both", expand=True)
+
+    def switch_to_page2():
+        page1_frame.pack_forget()
+        page3_frame.pack_forget()
+        # Placeholder for page2_frame if needed
+
+    def switch_to_page3():
+        page1_frame.pack_forget()
+        page3_frame.pack(fill="both", expand=True)
+
+    def switch_to_main():
+        page1_frame.pack_forget()
+        page3_frame.pack_forget()
+        options_frame.pack_forget()
+        main_page_frame.pack(fill="both", expand=True)
+
+    def update_time():
+        current_time = time.strftime("%I:%M:%S %p")
+        current_date = time.strftime("%A, %B %d, %Y")
+        page1_time_label.config(text=current_time)
+        page1_date_label.config(text=current_date)
+        page3_time_label.config(text=current_time)
+        page3_date_label.config(text=current_date)
+        root.after(1000, update_time)
+
+    # --- Layout Frames ---
+
+    main_frame = tk.Frame(root)
+    main_frame.pack(side=tk.RIGHT, fill="both", expand=True)
+
+    # Main Page Frame
+    main_page_frame = tk.Frame(main_frame, bg="#F0F4F8")
     main_page_frame.pack(fill="both", expand=True)
 
-
-# Update time and date every second
-def update_time():
-    current_time = time.strftime("%I:%M:%S %p")
-    current_date = time.strftime("%A, %B %d, %Y")
-   
-    page1_time_label.config(text=current_time)
-    #page2_time_label.config(text=current_time)
-    page3_time_label.config(text=current_time)
-    page1_date_label.config(text=current_date)
-    #page2_date_label.config(text=current_date)
-    page3_date_label.config(text=current_date)
-
-
-    root.after(1000, update_time)
-
-
-
-
-
-
-
-
-# Main frame for the content area
-main_frame = tk.Frame(root)
-main_frame.pack(side=tk.RIGHT, fill="both", expand=True)
-
-
-# Main Page Frame (Welcome page)
-main_page_frame = tk.Frame(main_frame, bg=BACKGROUND_COLOR)
-main_page_frame.pack(fill="both", expand=True)
-
-
-# Logo frame
-main_logo_frame = tk.Frame(main_page_frame, bg=BACKGROUND_COLOR)
-main_logo_frame.pack(pady=10)
-main_logo_frame.place(relx=0.5, rely=0.4, anchor="center")
-
-
-# Logo image
-main_logo_icon = tk.PhotoImage(file="icons/pawfeeder.png")
-main_logo_icon = main_logo_icon.subsample(2)
-
-
-main_logo_label = tk.Label(main_logo_frame, image=main_logo_icon, bg=BACKGROUND_COLOR)
-main_logo_label.pack(pady=20)
-
-
-# Start Feeding Button
-start_button = tk.Button(main_page_frame,
-                         text="Start Feeding",
-                         font=("Arial", 12, "bold"),
-                         bg="#508C9B",
-                         fg="white",
-                         padx=15,
-                         pady=5,
-                         relief="flat",
-                         activebackground="#508C9B",
-                         activeforeground="white",
-                         cursor="hand2",
-                         command=start_feeding)
-start_button.place(relx=0.5, rely=0.7, anchor="center")
-
-
-# Side bar frame
-options_frame = tk.Frame(root, bg=BACKGROUND_COLOR, width=200, height=500)
-options_frame.pack_propagate(False)
-
-
-# Logo frame
-logo_frame = tk.Frame(options_frame, bg=BACKGROUND_COLOR)
-logo_frame.pack(padx=10, pady=10, side=tk.TOP, anchor="w")
-
-
-# Logo image
-logo_icon = PhotoImage(file="icons/pawfeeder.png")
-logo_icon = logo_icon.subsample(3)
-logo_label = tk.Label(logo_frame, image=logo_icon, bg=BACKGROUND_COLOR)
-logo_label.pack(pady=20)
-
-
-# Button frame
-button_frame = tk.Frame(options_frame, bg=BACKGROUND_COLOR)
-button_frame.pack(side=tk.TOP, fill="both", expand=True)
-
-
-
-
-# Automatic Feed Button
-auto_feed_button = tk.Button(
-    button_frame,
-    text="AUTOMATIC FEED",
-    bg=BACKGROUND_COLOR,
-    fg=WHITE,
-    font=BUTTON_FONT,
-    relief="flat",
-    bd=0,
-    padx=15,
-    pady=15,
-    activebackground=BUTTON_COLOR,
-    command=switch_to_page1
-)
-auto_feed_button.pack(pady=5, fill="x")
-
-
-
-
-# Manual Feed Button
-manual_feed_button = tk.Button(
-    button_frame,
-    text="MANUAL FEED",
-    bg=BACKGROUND_COLOR,
-    fg=WHITE,
-    font=BUTTON_FONT,
-    relief="flat",
-    bd=0,
-    padx=15,
-    pady=15,
-    activebackground=BUTTON_COLOR,
-    command=switch_to_page3
-)
-manual_feed_button.pack(pady=5, fill="x")
-
-
-# Exit Feed Button
-exit_feed_button = tk.Button(
-    button_frame,
-    text="Exit",
-    bg=BACKGROUND_COLOR,
-    fg=WHITE,
-    font=BUTTON_FONT,
-    relief="flat",
-    bd=0,
-    padx=15,
-    pady=15,
-    activebackground=BUTTON_COLOR,
-    command=switch_to_main
-)
-exit_feed_button.pack(side="bottom", fill="x")
-
-
-
-
-# Page 1 Frame (Automatic Feed)
-page1_frame = tk.Frame(main_frame, bg="white")
-page1_frame.pack_propagate(False)
-page1_label = tk.Label(page1_frame, text="Automatic Feed Setup", font=("Helvetica", 20), bg="white")
-page1_label.place(x=30, y=90)
-
-
-page1_label1 = tk.Label(page1_frame, text="Choose schedule", font=("Helvetica", 14), bg="white")
-page1_label1.place(x=30, y=125)
-
-
-page1_time_label = tk.Label(page1_frame, font=("Arial", 20, "bold"), fg="black", anchor="nw", bg="white")
-page1_time_label.place(x=30, y=20)
-
-
-page1_date_label = tk.Label(page1_frame, font=("Arial", 12), fg="black", anchor="nw", bg="white")
-page1_date_label.place(x=30, y=50)
-
-
-# --- Schedule Feedback ---
-schedule_set = tk.Label(page1_frame, text=" Schedule Set:", font=("Arial", 10, "bold", "italic"), bg="white", fg="green")
-schedule_set.place(x=30, y=460)
-
-
-schedule_label = tk.Label(page1_frame, text="", font=("Arial", 10, "bold", "italic"), bg="white", fg="green")
-schedule_label.place(x=125, y=460)
-
-
-# --- Table Style ---
-style = ttk.Style()
-style.configure("Treeview.Heading",
-                font=("Helvetica", 10, "bold"),
-                background="#2A3A59",
-                foreground="black",
-                padding=10)
-
-
-style.configure("Treeview",
-                font=("Arial", 9),
-                background="white",
-                foreground="black",
-                fieldbackground="white",
-                rowheight=30)
-
-
-style.map("Treeview",
-          background=[("selected", "#508C9B"),
-                      ("!selected", "white")])
-
-
-# --- Table Widget ---
-columns = ("Dog Type", "Age/Size", "Meal Frequency", "Portion per Meal", "Time of Feeding")
-table = ttk.Treeview(page1_frame, columns=columns, show="headings", height=8)
-table.pack(pady=30, padx=20, fill="both")
-table.place(x=32, y=180)
-
-
-for col in columns:
-    table.heading(col, text=col)
-
-
-table.column("Dog Type", width=100, anchor="center")
-table.column("Age/Size", width=130, anchor="center")
-table.column("Meal Frequency", width=130, anchor="center")
-table.column("Portion per Meal", width=135, anchor="center")
-table.column("Time of Feeding", width=235, anchor="center")
-
-
-# --- Sample Schedule Data ---
-rows = [
-    ("Adult Dog", "Small (up to 20 lbs)", "2 times/day", "1/2-1 cup", "7:00 AM, 6:00 PM"),
-    ("Adult Dog", "Medium (21-50 lbs)", "2 times/day", "1-2 cups", "7:00 AM, 6:00 PM"),
-    ("Adult Dog", "Large (51-90 lbs)", "2 times/day", "2-3 cups", "7:00 AM, 6:00 PM"),
-    ("Adult Dog", "Giant (91+ lbs)", "2 times/day", "3-4 cups", "7:00 AM, 6:00 PM"),
-    ("Puppy", "Up to 4 months", "3-4 times/day", "1/4-1 cup", "7:00 AM, 12:00 PM, 5:00 PM, 6:00 PM"),
-    ("Puppy", "4 to 6 months", "3 times/day", "1/2-1 cup", "7:00 AM, 12:00 PM, 5:00 PM"),
-    ("Puppy", "6 months and older", "2 times/day", "1-2 cups", "10:00 AM, 10:01 AM"),
-]
-
-
-
-
-for row in rows:
-    table.insert("", "end", values=row)
-
-
-table.bind("<<TreeviewSelect>>", confirm_schedule)
-
-
-
-
-page1_reset_button = tk.Button(
-    page1_frame,
-    text="Reset Schedule",
-    font=("Arial", 10, "bold"),
-    bg="#D9534F",
-    padx=15,
-    pady=5,
-    relief="flat",
-    activebackground="#C9302C",
-    command=reset_schedule 
-)
-page1_reset_button.place(relx=0.5, y=540, anchor="center")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Page 3 Frame (Manual Feed)
-page3_frame = tk.Frame(main_frame, bg="white")
-page3_frame.pack_propagate(False)
-page3_label = tk.Label(page3_frame, text="Manual Feed Setup", font=("Helvetica", 20),  bg="white")
-page3_label.pack(pady=20)
-page3_label.place(x=30, y=90)
-
-
-page3_label1 = tk.Label(page3_frame, text="Click button to dispense dog foods", font=("Helvetica", 14),  bg="white")
-page3_label1.place(x=30, y=125)
-
-
-# Time and Date Labels with different font sizes
-page3_time_label = tk.Label(page3_frame, font=("Arial", 20, "bold"), fg="black", anchor="nw", bg="white")
-page3_time_label.place(x=30, y=20)
-
-
-page3_date_label = tk.Label(page3_frame, font=("Arial", 12), fg="black", anchor="nw", bg="white")
-page3_date_label.place(x=30, y=50)  
-
-
-# Dispense Button
-page3_button = tk.Button(
-    page3_frame,
-    text="Dispense",
-    font=("Arial", 10, "bold"),
-    bg="#508C9B",
-    fg="white",
-    disabledforeground="white",
-    padx=15,
-    pady=5,
-    relief="flat",
-    activebackground="white",
-    command=activate_manual_feed
-)
-page3_button.place(relx=0.5, y=450, anchor="center")
-
-
-update_time()
-
-
-root.mainloop()
-
-
-
-
+    # Main Logo
+    main_logo_frame = tk.Frame(main_page_frame, bg="#F0F4F8")
+    main_logo_frame.place(relx=0.5, rely=0.4, anchor="center")
+
+    main_logo_icon = PhotoImage(file="icons/pawfeeder.png").subsample(2)
+    main_logo_label = tk.Label(main_logo_frame, image=main_logo_icon, bg="#F0F4F8")
+    main_logo_label.pack(pady=20)
+
+    # Start Button
+    start_button = tk.Button(
+        main_page_frame, text="Start Feeding",font=BUTTON_FONT, bg="#134B70", fg="white",
+        padx=15, pady=5, relief="flat", activebackground=BUTTON_COLOR, activeforeground="white",
+        cursor="hand2", command=start_feeding
+    )
+    start_button.place(relx=0.5, rely=0.7, anchor="center")
+
+    # Options Sidebar
+    options_frame = tk.Frame(root, bg=BACKGROUND_COLOR, width=200, height=500)
+    options_frame.pack_propagate(False)
+
+    # Sidebar Logo
+    logo_frame = tk.Frame(options_frame, bg=BACKGROUND_COLOR)
+    logo_frame.pack(padx=10, pady=10, side=tk.TOP, anchor="w")
+
+    logo_icon = PhotoImage(file="icons/pawfeeder.png").subsample(3)
+    logo_label = tk.Label(logo_frame, image=logo_icon, bg=BACKGROUND_COLOR)
+    logo_label.pack(pady=20)
+
+    # Sidebar Buttons
+    button_frame = tk.Frame(options_frame, bg=BACKGROUND_COLOR)
+    button_frame.pack(side=tk.TOP, fill="both", expand=True)
+
+    auto_feed_button = tk.Button(
+        button_frame, text="AUTOMATIC FEED", font=BUTTON_FONT, bg=BACKGROUND_COLOR,
+        fg=WHITE, relief="flat", activebackground=BUTTON_COLOR, padx=15, pady=15, command=switch_to_page1
+    )
+    auto_feed_button.pack(pady=5, fill="x")
+
+    manual_feed_button = tk.Button(
+        button_frame, text="MANUAL FEED", font=BUTTON_FONT, bg=BACKGROUND_COLOR,
+        fg=WHITE, relief="flat", activebackground=BUTTON_COLOR, padx=15, pady=15, command=switch_to_page3
+    )
+    manual_feed_button.pack(pady=5, fill="x")
+
+    exit_feed_button = tk.Button(
+        button_frame, text="Exit", font=BUTTON_FONT, bg=BACKGROUND_COLOR,
+        fg=WHITE, relief="flat", activebackground=BUTTON_COLOR, padx=15, pady=15, command=switch_to_main
+    )
+    exit_feed_button.pack(side="bottom", fill="x")
+
+    # --- Page 1 (Automatic Feed) ---
+
+    page1_frame = tk.Frame(main_frame, bg="#F0F4F8")
+    page1_frame.pack_propagate(False)
+
+    page1_label = tk.Label(page1_frame, text="Automatic Feed Setup", font=HEADER_FONT, fg="#2A3B5A", bg="#F0F4F8")
+    page1_label.place(x=30, y=90)
+
+    page1_label1 = tk.Label(page1_frame, text="Choose schedule", font=SMALL_FONT, fg="#2A3B5A", bg="#F0F4F8")
+    page1_label1.place(x=30, y=125)
+
+    page1_time_label = tk.Label(page1_frame, font=("Arial", 20, "bold"),  fg="#2A3B5A", bg="#F0F4F8")
+    page1_time_label.place(x=30, y=20)
+
+    page1_date_label = tk.Label(page1_frame, font=("Arial", 12), fg="#2A3B5A", bg="#F0F4F8")
+    page1_date_label.place(x=30, y=50)
+
+    schedule_set = tk.Label(page1_frame, text="Schedule Set:", font=("Arial", 10, "bold", "italic"),  fg="#2A3B5A", bg="#F0F4F8")
+    schedule_set.place(x=30, y=460)
+
+    schedule_label = tk.Label(page1_frame, text="", font=("Arial", 10, "bold", "italic"),  fg="#2A3B5A", bg="#F0F4F8")
+    schedule_label.place(x=125, y=460)
+
+    # Table Style
+    style = ttk.Style()
+    style.configure("Treeview.Heading", font=("Helvetica", 10, "bold"))
+    style.configure("Treeview", font=("Arial", 9), background="white", foreground="black", rowheight=30)
+    style.map("Treeview", background=[("selected", BUTTON_COLOR)])
+
+    # Table Widget
+    columns = ("Dog Type", "Age/Size", "Meal Frequency", "Portion per Meal", "Time of Feeding")
+    table = ttk.Treeview(page1_frame, columns=columns, show="headings", height=8)
+    table.place(x=32, y=180)
+
+    for col in columns:
+        table.heading(col, text=col)
+
+    table.column("Dog Type", width=100, anchor="center")
+    table.column("Age/Size", width=130, anchor="center")
+    table.column("Meal Frequency", width=130, anchor="center")
+    table.column("Portion per Meal", width=135, anchor="center")
+    table.column("Time of Feeding", width=235, anchor="center")
+
+    # Sample Data
+    rows = [
+        ("Adult Dog", "Small (up to 20 lbs)", "2 times/day", "1/2-1 cup", "7:00 AM, 6:00 PM"),
+        ("Adult Dog", "Medium (21-50 lbs)", "2 times/day", "1-2 cups", "7:00 AM, 6:00 PM"),
+        ("Adult Dog", "Large (51-90 lbs)", "2 times/day", "2-3 cups", "7:00 AM, 6:00 PM"),
+        ("Adult Dog", "Giant (91+ lbs)", "2 times/day", "3-4 cups", "7:00 AM, 6:00 PM"),
+        ("Puppy", "Up to 4 months", "3-4 times/day", "1/4-1 cup", "7:00 AM, 12:00 PM, 5:00 PM, 6:00 PM"),
+        ("Puppy", "4 to 6 months", "3 times/day", "1/2-1 cup", "7:00 AM, 12:00 PM, 5:00 PM"),
+        ("Puppy", "6 months and older", "2 times/day", "1-2 cups", "9:28 PM, 9:30 PM"),
+    ]
+    for row in rows:
+        table.insert("", "end", values=row)
+    
+    table.bind("<<TreeviewSelect>>", confirm_schedule)
+
+    # Reset Schedule Button
+    page1_reset_button = tk.Button(
+        page1_frame,
+        text="Reset Schedule",
+        font=("Arial", 10, "bold"),
+        fg="WHITE",
+        bg="#508C9B",
+        padx=15,
+        pady=5,
+        relief="flat",
+        activebackground="#2E8C9B",
+        command=reset_schedule 
+    )
+    page1_reset_button.place(relx=0.5, y=540, anchor="center")
+
+    # --- Page 3 (Manual Feed) ---
+
+    page3_frame = tk.Frame(main_frame, bg="#F0F4F8")
+    page3_frame.pack_propagate(False)
+
+    page3_label = tk.Label(page3_frame, text="Manual Feed Setup", font=HEADER_FONT, bg="#F0F4F8",  fg="#2A3B5A")
+    page3_label.place(x=30, y=90)
+
+    page3_label1 = tk.Label(page3_frame, text="Click button to dispense dog foods", font=SMALL_FONT, fg="#2A3B5A", bg="#F0F4F8")
+    page3_label1.place(x=30, y=125)
+
+    page3_time_label = tk.Label(page3_frame, font=("Arial", 20, "bold"), fg="#2A3B5A", bg="#F0F4F8")
+    page3_time_label.place(x=30, y=20)
+
+    page3_date_label = tk.Label(page3_frame, font=("Arial", 12), bg="#F0F4F8", fg="#2A3B5A")
+    page3_date_label.place(x=30, y=50)
+
+    # Dispense Button
+    page3_button = tk.Button(
+        page3_frame,
+        text="Dispense",
+        font=("Arial", 10, "bold"),
+        bg="#508C9B",
+        fg="white",
+        disabledforeground="white",
+        padx=15,
+        pady=5,
+        relief="flat",
+        activebackground="white",
+        command=activate_manual_feed
+    )
+    page3_button.place(relx=0.5, y=450, anchor="center")
+
+    # --- Start Time Update ---
+    update_time()
+
+    # --- Main Loop ---
+    root.mainloop()

@@ -142,9 +142,9 @@ class App:
         
         if self.login_success:
             try:
-                subprocess.Popen(["python", "testsystem.py"])
+                subprocess.Popen(["python", "Pawfeeder.py"])
             except Exception as e:
-                print(f"Failed to start testsystem.py: {e}")
+                print(f"Failed to start Pawfeeder.py: {e}")
 
 
 
