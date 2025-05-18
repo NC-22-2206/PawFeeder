@@ -1,26 +1,27 @@
 #include <AFMotor.h>
-
 #include <Servo.h>
 #include <virtuabotixRTC.h>
 
-
-#define SERVO_PIN 10
+#define SERVO_PIN 11
 
 Servo foodServo;
-virtuabotixRTC myRTC(2, 3, 4);  // CLK, DAT, RST
+virtuabotixRTC myRTC(3, 5, 7);  // CLK, DAT, RST
 
 String scheduleTimes[10];       // Store up to 10 feeding times
-int scheduleCo      unt = 0;
-String lastActivatedTime = "";  // Track last activated time to prevent re-triggering
+int scheduleCount = 0;
+String lastActivatedTime = ""; // Track last activated time to prevent re-triggering
 
 int restPosition = 0;
 int feedPosition = 90;
 
-AF_DCMotor motor3(3); // assign 
+AF_DCMotor motor3(3); // assign motor 3
+AF_DCMotor motor4(4); // assign motor 4  //<-- ADDED MOTOR 4
 
 void setup() {
-  motor3.setSpeed(200); // set default speed
-  motor3.run(RELEASE); // set motor to off
+  motor3.setSpeed(200);  // set default speed for motor3
+  motor3.run(RELEASE);    // set motor3 to off
+  motor4.setSpeed(200);  // set default speed for motor4  //<-- ADDED MOTOR 4
+  motor4.run(RELEASE);    // set motor4 to off        //<-- ADDED MOTOR 4
 
   Serial.begin(9600);
 
@@ -34,29 +35,32 @@ void setup() {
   foodServo.write(restPosition);
 
   // OPTIONAL: Set RTC time ONCE, then comment out!
-  // myRTC.setDS1302Time(0, 13, 13, 7, 23, 3, 2025);  // sec, min, hour, DOW, day, month, year
+  //myRTC.setDS1302Time(0, 13, 13, 7, 23, 3, 2025);  // sec, min, hour, DOW, day, month, year
 
   Serial.println("[SYSTEM] Dog Feeder Initialized.");
-  
 }
 
 void loop() {
+  // This code depends whether it's automatic or manual.
+  // Manual control (example with two motors)
+  motor3.run(FORWARD);  // motor3 runs forwards
+  motor4.run(FORWARD);  // motor4 runs forwards  //<-- ADDED MOTOR 4
+  motor3.setSpeed(200);
+  motor4.setSpeed(200);  //<-- ADDED MOTOR 4
+  delay(1000);
+  motor3.run(RELEASE);
+  motor4.run(RELEASE);  //<-- ADDED MOTOR 4
+  delay(100);
 
-
-  // This code depends whether it's automatic or manual. Manual for button inputs such as below. Automatic adds a loop to the whole algorithm for automatic dispensing.
-  // start
-  motor3.run(FORWARD); // motor runs forwards (changes depending on the DC Motor orientation)
-
-  motor3.setSpeed(200); // set speed for the rotation
-  delay(10); // delay before turning off (can change depending on how far the platform extends)
-  motor3.run(RELEASE) // turn off DC motor 
-  delay(10) // delay before retracting personal preference
-
-  motor3.run(BACKWARD) // motor runs opposite to retract
-  motor3.setSpeed(200)
-  delay(10); // delay before retracting to previous position (the platform goes back in for refill or whatever)
-  motor3.run(RELEASE) // turn off DC motor for another input
-  //end of code.
+  motor3.run(BACKWARD);
+  motor4.run(BACKWARD);  //<-- ADDED MOTOR 4
+  motor3.setSpeed(200);
+  motor4.setSpeed(200);  //<-- ADDED MOTOR 4
+  delay(1000);
+  motor3.run(RELEASE);
+  motor4.run(RELEASE);  //<-- ADDED MOTOR 4
+  delay(100);
+  //end of manual control
 
   myRTC.updateTime();
 
@@ -104,7 +108,6 @@ void loop() {
   }
 
   delay(1000); // 1-second loop
-
 }
 
 void dispenseFood() {

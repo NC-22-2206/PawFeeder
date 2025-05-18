@@ -8,6 +8,9 @@ import subprocess
 from email.message import EmailMessage
 from dotenv import load_dotenv
 import time
+import re
+import hashlib
+
 
 load_dotenv()
 
@@ -53,6 +56,9 @@ def load_data(filename):
 def save_data(data, filename):
     with open(filename, "wb") as file:
         pickle.dump(data, file)
+
+def hash_pin(pin):
+    return hashlib.sha256(pin.encode()).hexdigest()
 
 
 # --- Email Sending ---
@@ -286,6 +292,9 @@ class RegisterEmailScreen(BaseFrame):
         if self.resend_timer:
             self.master.after_cancel(self.resend_timer)
             self.resend_timer = None
+
+    def is_valid_email(email):
+        return re.match(r"[^@]+@[^@]+\.[^@]+", email)
 
 
 
@@ -613,6 +622,6 @@ class ResetPinScreen(BaseFrame):
 # --- Entry Point ---
 if __name__ == "__main__":
     if show_pin_verification():
-        print("Access granted!")
+        print("PawFeeder System Launched!")
     else:
         print("Access denied or cancelled.")
