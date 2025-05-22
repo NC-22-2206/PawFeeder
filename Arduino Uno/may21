@@ -1,0 +1,201 @@
+#include <AFMotor.h>
+#include <Servo.h>
+#include <virtuabotixRTC.h>
+
+#define SERVO_PIN 11
+
+Servo foodServo;
+// CLK, DAT, RST pins for the RTC module
+virtuabotixRTC myRTC(2, 3, 6);
+
+// Array to store up to 10 feeding times (HH:MM:SS format)
+String scheduleTimes[10];
+int scheduleCount = 0;
+// Track last activated time to prevent re-triggering within the same second
+String lastActivatedTime = "";
+
+// Servo positions: adjust these values based on your servo's range and feeder mechanism
+int restPosition = 0;  // Servo position when not dispensing (e.g., closed)
+int feedPosition = 90; // Servo position for dispensing food (e.g., open)
+
+// Assign motor 3 to port M1 of the Adafruit Motor Shield
+// Ensure your motor is connected to the M1/M2 terminals on the shield.
+AF_DCMotor motor3(1);
+
+void setup() {
+  Serial.begin(9600); // Initialize serial communication for debugging
+  Serial.println("[SYSTEM] Dog Feeder Initialized.");
+  Serial.println("[IMPORTANT] Ensure your motor shield has an EXTERNAL POWER SUPPLY (e.g., 9V-12V DC) connected to its power input, not just the Arduino's USB/barrel jack.");
+  Serial.println("[IMPORTANT] Verify your DC motor is correctly wired to the M1/M2 terminals on the motor shield.");
+
+  // Configure DC motor 3
+  motor3.setSpeed(255);    // Set default speed for motor3 (0-255). 255 is full speed.
+  motor3.run(RELEASE);     // Ensure motor3 is initially off/released (free-spinning)
+
+  // Configure Servo
+  pinMode(SERVO_PIN, OUTPUT); // Set the servo pin as an output
+  digitalWrite(SERVO_PIN, LOW); // Ensure the pin is low initially (optional, but good practice)
+  foodServo.attach(SERVO_PIN);  // Attach the servo to the defined pin
+  foodServo.write(restPosition); // Move servo to the rest position
+
+  // Initialize RTC module
+  myRTC.updateTime(); // Read current time from RTC
+  delay(1000);        // Give RTC a moment to update
+
+  // OPTIONAL: Set RTC time ONCE, then comment out this line!
+  // myRTC.setDS1302Time(0, 42, 15, 7, 21, 5, 2025);   // sec, min, hour, DOW, day, month, year
+
+  // --- Motor Test in Setup ---
+  // This section will briefly run the motor to confirm it's working
+  Serial.println("[TEST] Running motor 3 briefly FORWARD...");
+  motor3.run(FORWARD);
+  delay(1000); // Run for 1 second
+  motor3.run(RELEASE); // Stop the motor
+  Serial.println("[TEST] Motor 3 test complete. If the motor did not spin, check wiring and external power.");
+  delay(2000); // Pause to allow user to read the test message
+  // --- End Motor Test ---
+}
+
+void loop() {
+  // Update time from RTC module
+  myRTC.updateTime();
+
+  int hour = myRTC.hours;
+  int minute = myRTC.minutes;
+  int second = myRTC.seconds;
+
+  // Basic validation for RTC time (though RTC modules usually provide valid time)
+  if (hour < 0 || hour > 23 || minute > 59 || second > 59) {
+    Serial.println("[ERROR] Invalid RTC time detected. Check RTC module and wiring.");
+    // Consider adding a longer delay or a retry mechanism here if RTC frequently fails
+    return; // Exit loop iteration if time is invalid
+  }
+
+  // Format current time into a string (HH:MM:SS)
+  char currentTime[9];
+  sprintf(currentTime, "%02d:%02d:%02d", hour, minute, second);
+  String currentTimeStr = String(currentTime);
+
+  Serial.print("[RTC] Current Time: ");
+  Serial.println(currentTimeStr);
+
+  // Check if current time matches any scheduled feeding time
+  for (int i = 0; i < scheduleCount; i++) {
+    // Only activate if the time matches AND it hasn't been activated at this exact time before
+    // The 'lastActivatedTime' check prevents multiple activations if the loop runs faster than 1 second
+    if (scheduleTimes[i] == currentTimeStr && lastActivatedTime != currentTimeStr) {
+      Serial.println("[MATCH] Scheduled feeding time matched!");
+      dispenseFood(); // Call the food dispensing function
+      lastActivatedTime = currentTimeStr; // Update last activated time to prevent re-triggering
+      break; // Exit loop after finding a match and dispensing
+    }
+  }
+
+  // Handle serial input commands
+  if (Serial.available()) {
+    String incoming = Serial.readStringUntil('\n'); // Read incoming serial data until newline
+    incoming.trim(); // Remove leading/trailing whitespace
+
+    Serial.print("[SERIAL INPUT] Received: ");
+    Serial.println(incoming);
+
+    // Command to set a schedule: "SCHEDULE:HH:MM:SS,HH:MM:SS,..."
+    if (incoming.startsWith("SCHEDULE:")) {
+      String timesStr = incoming.substring(9); // Extract the times string
+      parseSchedule(timesStr); // Parse and store the schedule times
+    }
+    // Command to get current RTC time
+    else if (incoming == "GETTIME") {
+      Serial.print("[GETTIME] Current RTC Time: ");
+      Serial.println(currentTimeStr);
+    }
+    // Command for manual food dispensing
+    else if (incoming == "D" || incoming == "FEED") {
+      Serial.println("[MANUAL] Dispensing food now...");
+      dispenseFood(); // Manually dispense food
+    }
+  }
+
+  delay(1000); // Loop runs every 1 second to check time
+}
+
+// Function to control servo and DC motor for food dispensing
+void dispenseFood() {
+  Serial.println("[ACTION] Starting food dispensing sequence...");
+
+  // 1. Servo movement to open
+  Serial.println("[SERVO] Moving to feed position...");
+  foodServo.write(feedPosition);
+  delay(2000); // Keep servo open for 2 seconds (adjust as needed for food quantity)
+
+  // 2. Quick wiggles to help dislodge food (optional, but often helpful)
+  Serial.println("[SERVO] Performing quick wiggles...");
+  foodServo.write(feedPosition - 10); // Move slightly left
+  delay(250);
+  foodServo.write(feedPosition + 10); // Move slightly right
+  delay(250);
+  foodServo.write(feedPosition);      // Return to feed position
+  delay(250);
+
+  // 3. Servo movement to close
+  Serial.println("[SERVO] Moving to rest position...");
+  foodServo.write(restPosition);
+  delay(1000); // Allow servo to settle
+
+  // 4. DC Motor Control Sequence for auger/dispenser
+  // Ensure your motor's direction (FORWARD/BACKWARD) corresponds to dispensing action
+  Serial.println("[MOTOR 3] Activating auger (BACKWARD)...");
+  motor3.run(BACKWARD); // Run motor in one direction to dispense
+  delay(1500); // Run for 1.5 seconds (adjust duration based on food flow)
+
+  Serial.println("[MOTOR 3] Stopping auger...");
+  motor3.run(RELEASE); // Stop the motor (motor is free to spin)
+  // motor3.run(BRAKE); // Alternative: actively brake the motor, might be more definitive stop
+  delay(1000); // Short delay after stopping
+
+  // If you need the motor to 'reset' or clear the auger, you can add a forward spin
+  Serial.println("[MOTOR 3] Briefly running FORWARD to clear auger (optional)...");
+  motor3.run(FORWARD); // Spin briefly in the opposite direction
+  delay(500); // Adjust duration
+  motor3.run(RELEASE); // Stop again
+  delay(1000);
+
+  Serial.println("[ACTION] Food dispensing sequence complete.");
+}
+
+// Function to parse schedule times from a string
+void parseSchedule(String timesStr) {
+  scheduleCount = 0; // Reset schedule count for new schedule
+  int start = 0;
+
+  Serial.println("[SCHEDULE] Parsing new schedule...");
+
+  // Loop through the string, finding comma-separated times
+  while (start < timesStr.length()) {
+    int commaIndex = timesStr.indexOf(',', start); // Find the next comma
+    if (commaIndex == -1) commaIndex = timesStr.length(); // If no comma, it's the end of the string
+
+    String t = timesStr.substring(start, commaIndex); // Extract the time string
+    t.trim(); // Remove any whitespace
+
+    // Validate time format (HH:MM:SS)
+    // Checks length and position of colons
+    if (t.length() == 8 && t.charAt(2) == ':' && t.charAt(5) == ':') {
+      scheduleTimes[scheduleCount++] = t; // Store valid time
+      Serial.print("[SCHEDULE] Added: ");
+      Serial.println(t);
+    } else {
+      Serial.print("[ERROR] Invalid time format detected, skipping: ");
+      Serial.println(t);
+    }
+
+    start = commaIndex + 1; // Move start to after the current time/comma
+    if (scheduleCount >= 10) { // Prevent overflow of scheduleTimes array
+      Serial.println("[WARNING] Maximum 10 schedule times reached. Ignoring further times.");
+      break; // Stop parsing if array is full
+    }
+  }
+  Serial.print("[SCHEDULE] Total schedules loaded: ");
+  Serial.println(scheduleCount);
+  lastActivatedTime = ""; // Reset last activated time when schedule changes to allow new schedule to trigger
+}

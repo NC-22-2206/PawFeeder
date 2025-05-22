@@ -15,11 +15,11 @@ bool automaticMode = false;     //<-- ADDED MODE VARIABLE
 int restPosition = 0;
 int feedPosition = 150;
 
-AF_DCMotor motor3(3); // assign motor 3
+AF_DCMotor motor1(1); // assign motor 
 
 void setup() {
-  motor3.setSpeed(255);      // set default speed for motor3
-  motor3.run(RELEASE);         // set motor3 to off
+  motor1.setSpeed(255);      // set default speed for motor1
+  motor1.run(RELEASE);         // set motor1 to off
 
   Serial.begin(9600);
 
@@ -33,7 +33,7 @@ void setup() {
   foodServo.write(restPosition);
 
   // OPTIONAL: Set RTC time ONCE, then comment out!
-  //myRTC.setDS1302Time(0, 19, 15, 7, 18, 5, 2025);   // sec, min, hour, DOW, day, month, year
+  //myRTC.setDS1302Time(0, 42, 12, 7, 21, 5, 2025);   // sec, min, hour, DOW, day, month, year
 
   Serial.println("[SYSTEM] Dog Feeder Initialized.");
 }
@@ -98,15 +98,15 @@ void loop() {
     } else {
       // Manual motor control (for testing or other purposes)
       if (incoming == "M3F") {
-        motor3.run(FORWARD);
-        motor3.setSpeed(255);
+        motor1.run(FORWARD);
+        motor1.setSpeed(255);
         Serial.println("[MOTOR] Motor 3 forward.");
       } else if (incoming == "M3B") {
-        motor3.run(BACKWARD);
-        motor3.setSpeed(255);
+        motor1.run(BACKWARD);
+        motor1.setSpeed(255);
         Serial.println("[MOTOR] Motor 3 backward.");
       } else if (incoming == "M3S") {
-        motor3.run(RELEASE);
+        motor1.run(RELEASE);
         Serial.println("[MOTOR] Motor 3 stopped.");
       }
     }
@@ -117,7 +117,7 @@ void loop() {
 void dispenseFood() {
   Serial.println("[ACTION] Moving servo to feed position...");
   foodServo.write(feedPosition);
-  delay(3000); // Stay at feed position for a short duration
+  delay(2000); // Stay at feed position for a short duration
 
   // Quick left wiggle
   foodServo.write(feedPosition - 50); // Move 10 degrees to the left
@@ -134,19 +134,19 @@ void dispenseFood() {
 
   // *** DC Motor Control Sequence ***
   Serial.println("[MOTOR 3] Moving BACKWARD");
-  motor3.run(BACKWARD);
+  motor1.run(BACKWARD);
   delay(1200);
 
   Serial.println("[MOTOR 3] STOP");
-  motor3.run(RELEASE);
+  motor1.run(RELEASE);
   delay(10000);
 
   Serial.println("[MOTOR 3] Moving FORWARD");
-  motor3.run(FORWARD);
+  motor1.run(FORWARD);
   delay(1200);
 
   Serial.println("[MOTOR 3] STOP");
-  motor3.run(RELEASE);
+  motor1.run(RELEASE);
   delay(5000);
 
   Serial.println("[ACTION] Food dispensed.");

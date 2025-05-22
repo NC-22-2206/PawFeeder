@@ -24,6 +24,7 @@ except ImportError:
 PIN_FILE = "pkl/pin_code.pkl"
 OTP_FILE = "pkl/otp.pkl"
 EMAIL_FILE = "pkl/email.pkl"
+TERMS_ACCEPTED_FILE = "pkl/terms_accepted.pkl"
 OTP_EXPIRY = 120  # 2 minutes
 RECOVERY_WAIT_TIME = 120 # 2 minutes
 
@@ -92,6 +93,17 @@ def send_otp_email(to_email, otp):
 
 # --- App Launcher ---
 def show_pin_verification():
+    """Launch the main application window."""
+    terms_accepted = load_data(TERMS_ACCEPTED_FILE)
+    if not terms_accepted:
+        try:
+            subprocess.Popen(["python", "terms.py"])
+            return False  # Prevent login if terms not accepted
+        except Exception as e:
+            print(f"Failed to start terms.py: {e}")
+            messagebox.showerror("Error", "Terms and conditions file not found.  Please ensure terms.py is in the same directory.")
+            return False
+
     root = tk.Tk()
     app = App(root)
     root.mainloop()
@@ -144,14 +156,8 @@ class App:
 
     def login_successful(self):
         self.login_success = True
-        self.master.destroy()  
-        
-        if self.login_success:
-            try:
-                subprocess.Popen(["python", "Pawfeeder.py"])
-            except Exception as e:
-                print(f"Failed to start Pawfeeder.py: {e}")
-
+        self.master.destroy()
+        subprocess.Popen(["python", "Pawfeeder.py"])
 
 
 # --- Base Frame ---
@@ -394,12 +400,12 @@ class LoginScreen(BaseFrame):
         # Frame for PIN Entry
         pin_frame = tk.Frame(self.container, bg="#F0F4F8")
         pin_frame.pack(fill="x", pady=5, anchor=tk.W)
-        
-        # PIN entry field
+          # PIN entry field
         self.pin_entry = tk.Entry(pin_frame, show="*", font=ENTRY_FONT, bd=1, relief="flat",
                                    highlightthickness=1, highlightbackground="#ccc", highlightcolor="#3AA6B9", 
                                    justify='center', validate="key", validatecommand=vcmd)
         self.pin_entry.pack(side="left", fill="x", expand=True, pady=10, padx=10)
+        self.pin_entry.bind('<Return>', lambda event: self.check_pin())  # Bind Enter key to login
         
         # Eye icon images for show/hide toggle
         self.eye_icon = PhotoImage(file="icons/visibility_off.png")
@@ -628,6 +634,7 @@ class ResetPinScreen(BaseFrame):
 # --- Entry Point ---
 if __name__ == "__main__":
     if show_pin_verification():
-        print("PawFeeder System Launched!")
+        print("Access granted!")
     else:
         print("Access denied or cancelled.")
+

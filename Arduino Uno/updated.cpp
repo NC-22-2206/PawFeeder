@@ -2,7 +2,11 @@
 #include <Servo.h>
 #include <virtuabotixRTC.h>
 
-#define SERVO_PIN 11
+// Function declarations
+void dispenseFood();
+void parseSchedule(String timesStr);
+
+#define SERVO_PIN 9
 
 Servo foodServo;
 virtuabotixRTC myRTC(2, 3, 6);   // CLK, DAT, RST
@@ -15,11 +19,11 @@ bool automaticMode = false;     //<-- ADDED MODE VARIABLE
 int restPosition = 0;
 int feedPosition = 150;
 
-AF_DCMotor motor3(3); // assign motor 3
+AF_DCMotor motor1(1); // Changed to motor 1 with appropriate frequency
 
 void setup() {
-  motor3.setSpeed(255);      // set default speed for motor3
-  motor3.run(RELEASE);         // set motor3 to off
+  delay(2000);  // Give time for motor shield to initialize  motor1.setSpeed(0);  // Start with zero speed
+  motor1.run(RELEASE); // Initialize motor state
 
   Serial.begin(9600);
 
@@ -33,7 +37,7 @@ void setup() {
   foodServo.write(restPosition);
 
   // OPTIONAL: Set RTC time ONCE, then comment out!
-  //myRTC.setDS1302Time(0, 19, 15, 7, 18, 5, 2025);   // sec, min, hour, DOW, day, month, year
+  //myRTC.setDS1302Time(0, 44, 12, 7, 22, 5, 2025);   // sec, min, hour, DOW, day, month, year
 
   Serial.println("[SYSTEM] Dog Feeder Initialized.");
 }
@@ -78,37 +82,34 @@ void loop() {
     if (incoming.startsWith("SCHEDULE:")) {
       String timesStr = incoming.substring(9);
       parseSchedule(timesStr);
-      automaticMode = true; // Enable automatic mode when schedule is received
+      automaticMode = true;
       Serial.println("[MODE] Automatic mode enabled.");
     } else if (incoming == "GETTIME") {
       Serial.println(currentTimeStr);
     } else if (incoming == "D" || incoming == "FEED") {
       Serial.println("[MANUAL] Dispensing food now...");
       dispenseFood();
-      automaticMode = false; // Disable automatic mode for manual dispense
-      lastActivatedTime = "";   //reset
+      automaticMode = false;
+      lastActivatedTime = "";
       Serial.println("[MODE] Automatic mode disabled.");
-    } else if (incoming == "AUTO") { //<-- Added AUTO command
-        automaticMode = true;
-        Serial.println("[MODE] Automatic mode enabled.");
-    } else if (incoming == "MANUAL") { //<-- Added MANUAL command
-        automaticMode = false;
-        Serial.println("[MODE] Manual mode disabled.");
-        lastActivatedTime = ""; //reset lastActivatedTime
-    } else {
-      // Manual motor control (for testing or other purposes)
-      if (incoming == "M3F") {
-        motor3.run(FORWARD);
-        motor3.setSpeed(255);
-        Serial.println("[MOTOR] Motor 3 forward.");
-      } else if (incoming == "M3B") {
-        motor3.run(BACKWARD);
-        motor3.setSpeed(255);
-        Serial.println("[MOTOR] Motor 3 backward.");
-      } else if (incoming == "M3S") {
-        motor3.run(RELEASE);
-        Serial.println("[MOTOR] Motor 3 stopped.");
-      }
+    } else if (incoming == "AUTO") {
+      automaticMode = true;
+      Serial.println("[MODE] Automatic mode enabled.");
+    } else if (incoming == "MANUAL") {
+      automaticMode = false;
+      Serial.println("[MODE] Manual mode disabled.");
+      lastActivatedTime = "";
+    } else if (incoming == "M1F") {
+      motor1.run(FORWARD);
+      motor1.setSpeed(150);
+      Serial.println("[MOTOR] Motor 1 forward.");
+    } else if (incoming == "M1B") {
+      motor1.run(BACKWARD);
+      motor1.setSpeed(150);
+      Serial.println("[MOTOR] Motor 1 backward.");
+    } else if (incoming == "M1S") {
+      motor1.run(RELEASE);
+      Serial.println("[MOTOR] Motor 1 stopped.");
     }
   }
 
@@ -117,37 +118,37 @@ void loop() {
 void dispenseFood() {
   Serial.println("[ACTION] Moving servo to feed position...");
   foodServo.write(feedPosition);
-  delay(3000); // Stay at feed position for a short duration
+  delay(3000);
 
   // Quick left wiggle
-  foodServo.write(feedPosition - 50); // Move 10 degrees to the left
-  delay(250); // Shorter delay for a quick wiggle
+  foodServo.write(feedPosition - 50);
+  delay(250);
 
   // Quick right wiggle
-  foodServo.write(feedPosition + 50); // Move 10 degrees to the right
-  delay(250); // Shorter delay for a quick wiggle
-
+  foodServo.write(feedPosition + 50);
+  delay(250);
   foodServo.write(restPosition);
   Serial.println("[ACTION] Servo movement complete.");
+  delay(2000);  // Wait 2 seconds after servo movement
+  // Run DC motor forward first  
+  Serial.println("[MOTOR 1] Moving FORWARD");
+  motor1.run(FORWARD);
+  motor1.setSpeed(130);  // Full speed
+  delay(500);  // Run longer
 
-  delay(2000); // Wait for 2 seconds before moving the motor
+  Serial.println("[MOTOR 1] STOP");
+  motor1.setSpeed(0);
+  motor1.run(RELEASE);
+  delay(3000);
 
-  // *** DC Motor Control Sequence ***
-  Serial.println("[MOTOR 3] Moving BACKWARD");
-  motor3.run(BACKWARD);
-  delay(1200);
+  // Then backward  Serial.println("[MOTOR 1] Moving BACKWARD");
+  motor1.run(BACKWARD);
+  motor1.setSpeed(130);
+  delay(500);  // Run longer
 
   Serial.println("[MOTOR 3] STOP");
-  motor3.run(RELEASE);
-  delay(10000);
-
-  Serial.println("[MOTOR 3] Moving FORWARD");
-  motor3.run(FORWARD);
-  delay(1200);
-
-  Serial.println("[MOTOR 3] STOP");
-  motor3.run(RELEASE);
-  delay(5000);
+  motor1.setSpeed(0);
+  motor1.run(RELEASE);
 
   Serial.println("[ACTION] Food dispensed.");
 }
